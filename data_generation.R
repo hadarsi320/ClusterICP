@@ -2,9 +2,9 @@ library(purrr)
 library(comprehenr)
 
 sample_from_sem <- function(p, n, noise_vars, connections) {
-  X <- matrix(rnorm(p*n, sd = noise_vars^0.5), nrow=n)
+  X <- matrix(rnorm(p*n), nrow=n)
   for (i in 2:p) {
-    X[, i] = X[, i] + X %*% connections[, i]
+    X[, i] = X[, i] * noise_vars[i]^0.5 + X %*% connections[, i]
   }
   # for (i in 1:(p-1)) {
   #   for (j in (i+1):p) {
@@ -15,44 +15,41 @@ sample_from_sem <- function(p, n, noise_vars, connections) {
 }
 
 
-sample_data <- function(p_max=40) {
+sample_data <- function() {
   # sampling parameters
-  n_obs <- rdunif(1, 5) * 100
-  n_int <- rdunif(1, 5) * 100
-  p <- rdunif(1, 5, p_max)
-  k <- rdunif(1, 4)
+  n_obs <- rdunif(1, 5) * 100  # num sample in observational data
+  n_int <- rdunif(1, 5) * 100  # num sample in interventional data
+  p <- rdunif(1, 5, 40)  # num nodes
+  k <- rdunif(1, 1, 4)  # average degree
+
+  lb <- rdunif(1, 20) / 10  # lower bound for coefficients
+  ub <- lb + rdunif(1, 20) / 10 # upper bound for coefficients
   
-  lb <- rdunif(1, 20) / 10
-  ub <- lb + rdunif(1, 20) / 10 
+  var_min <- rdunif(1, 20) / 10 # lower bound for noise variance
+  var_max <- max(var_min, rdunif(1, 20) / 10)  # upper bound for noise variance
   
-  var_min <- rdunif(1, 20) / 10
-  var_max <- max(var_min, rdunif(1, 20) / 10)
-  
-  a_min <- rdunif(1, 40) / 10
   if (runif(1) <= 1/3) {
-    a_max <- a_min
+    a_dif <- 0
   } else {
-    a_max <- a_min + rdunif(1, 20) / 10
+    a_dif <- rdunif(1, 20) / 10
   }
+  a_min <- rdunif(1, 40) / 10  # lower bound for noise scaling intervention
+  a_max <- a_min + a_dif  # upper bound for noise scaling intervention
   
-  if (runif(1) <= 2/3) {
-    lb_int = lb
-    ub_int = ub
-  } else {
-    int_coefs = rdunif(2, 20) / 10
-    lb_int = min(int_coefs)
-    ub_int = max(int_coefs)
-  }
+  int_coefs = rdunif(2, 20) / 10
+  lb_int = min(int_coefs)  # lower bound for interventional coefficients
+  ub_int = max(int_coefs)  # upper bound for interventional coefficients
+  intervene_connections = runif(1) <= 1/3  # whether to intervene on the coefficients or not
+  
   
   if (runif(1) <= 1/6) {
-    inv_frac = p
+    inv_frac = p  # the inverse fraction of coefficients to intervene on
   } else {
     inv_frac = rdunif(1, 11, 30) / 10
   }
   
-  intervene_connections = runif(1) <= 1/3
-  target_variable = rdunif(1, p)
-  predictor_variables <- to_vec(for (i in 1:p) if (i != target_variable) i)
+  target = rdunif(1, p)
+  predictors <- to_vec(for (i in 1:p) if (i != target) i)
   
   # observational sem
   noise_vars <- runif(p, var_min, var_max)
@@ -67,7 +64,7 @@ sample_data <- function(p_max=40) {
   }
   
   # interventional sem
-  int_nodes <- sort(sample(predictor_variables, p/inv_frac))
+  int_nodes <- sort(sample(predictors, p/inv_frac))
   noise_vars_int = noise_vars
   connections_int = connections
   
@@ -77,7 +74,7 @@ sample_data <- function(p_max=40) {
     for (j in int_nodes) {
       for (i in 1:(j-1)) {
         if (runif(1) < k / (p-1)) {
-          sign = sample(range(-1, 1), 1)
+          sign = sample(c(-1, 1), 1)
           connections[i, j] = sign * runif(1, lb, ub)
         } else {
           connections[i, j] = 0
@@ -86,17 +83,23 @@ sample_data <- function(p_max=40) {
     }
   }
   
+  target_parents <- to_vec(for (i in 1:p) if (connections[i, target] != 0) i)
+  target_parent_weights <- 
+    to_vec(for (i in 1:p) if (connections[i, target] != 0) connections[i, target])
+  
   # sampling data
   data_obs <- sample_from_sem(p, n_obs, noise_vars, connections)
   data_int <- sample_from_sem(p, n_int, noise_vars_int, connections_int)
   data <- rbind(data_obs, data_int)
   colnames(data) <- 1:p
   
-  Y <- data[, target_variable]
-  data <- data[, -target_variable]
+  Y <- data[, target]
+  data <- data[, -target]
   ExpInd <- c(rep(1, n_obs), rep(2, n_int))
-  target_parents <- to_vec(for (i in 1:p) if (connections[i, target_variable] != 0) i)
-  return(list('X' = data, 'Y' = Y, 'E' = ExpInd, 'target_parents' = target_parents,
-              'obs_conn' = connections, 'int_conn' = connections_int,
-              'int_nodes' = int_nodes, 'target' = target_variable))
+  
+  return(list('X' = data, 'Y' = Y, 'E' = ExpInd, 'target' = target, 
+              'target_parents' = target_parents, 'target_parent_weights' = target_parent_weights,
+              'obs_conn' = connections,  'int_conn' = connections_int,
+              'obs_noise_vars' = noise_vars, 'int_noise_vars' = noise_vars_int,
+              'int_nodes' = int_nodes))
 }
