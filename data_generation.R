@@ -94,10 +94,10 @@ sample_data <- function() {
   colnames(data) <- 1:p
   
   Y <- data[, target]
-  data <- data[, -target]
+  X <- data[, -target]
   ExpInd <- c(rep(1, n_obs), rep(2, n_int))
   
-  return(list('X' = data, 'Y' = Y, 'E' = ExpInd, 'target' = target, 
+  return(list('X' = X, 'Y' = Y, 'E' = ExpInd, 'target' = target, 
               'target_parents' = target_parents, 'target_parent_weights' = target_parent_weights,
               'obs_conn' = connections,  'int_conn' = connections_int,
               'obs_noise_vars' = noise_vars, 'int_noise_vars' = noise_vars_int,
