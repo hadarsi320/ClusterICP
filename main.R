@@ -2,22 +2,30 @@ library(InvariantCausalPrediction)
 source('data_generation.R')
 
 # set.seed(10)
-data <- sample_data()
-X = data$X
-Y = data$Y
-E = data$E
-t = data$target
-beta = data$obs_conn[, t][-t]
-R = Y - X %*% beta
-R_obs = R[E == 1]
-R_int = R[E == 2]
-equal_vars = var.test(R_obs, R_int)$p.value > 0.05
-equal_means = t.test(R_obs, R_int)$p.value > 0.05
+n_settings = 100
+n_repeats = 100
+success_list <- 0
+fwer_list <- 0
+for (i in 1:n_settings){
+  cat('Setting', i, '\n')
+  
+  data <- sample_data(repeats = n_repeats)
+  X = data$X
+  Y = data$Y
+  E = data$E
+  target_parents <- data$target_parents
 
-icp <- ICP(data$X, data$Y, data$E, alpha=0.01,
-           showAcceptedSets = FALSE, showCompletion = FALSE, stopIfEmpty = TRUE)
-print(icp)
-invariant_predictors = to_vec(for (i in 1:ncol(X)) if (icp$maximinCoefficients[i] != 0) icp$colnames[i])
-print(invariant_predictors)
+  success <- 0
+  fwer <- 0
+  for (j in 1:n_repeats){
+    icp <- ICP(X[[j]], Y[[j]], E, alpha=0.01,
+               showAcceptedSets = FALSE, showCompletion = FALSE, stopIfEmpty = TRUE)
+    invariant_predictors = to_vec(for (k in 1:ncol(X[[j]])) if (icp$maximinCoefficients[k] != 0) icp$colnames[k])
+    fwer[j] <- any((for (predictor in invariant_predictors) !is.element(predictor, target_parents)))
+    success[j] <- setequal(invariant_predictors, target_parents)
+  }
+  success_list[i] <- mean(success)
+  fwer_list[i] <- mean(fwer)
+}
 # plot(icp)
 

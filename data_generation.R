@@ -15,7 +15,7 @@ sample_from_sem <- function(p, n, noise_vars, connections) {
 }
 
 
-sample_data <- function() {
+sample_data <- function(repeats=1) {
   # sampling parameters
   n_obs <- rdunif(1, 5) * 100  # num sample in observational data
   n_int <- rdunif(1, 5) * 100  # num sample in interventional data
@@ -88,13 +88,28 @@ sample_data <- function() {
     to_vec(for (i in 1:p) if (connections[i, target] != 0) connections[i, target])
   
   # sampling data
-  data_obs <- sample_from_sem(p, n_obs, noise_vars, connections)
-  data_int <- sample_from_sem(p, n_int, noise_vars_int, connections_int)
-  data <- rbind(data_obs, data_int)
-  colnames(data) <- 1:p
-  
-  Y <- data[, target]
-  X <- data[, -target]
+  if (repeats == 1) {
+    data_obs <- sample_from_sem(p, n_obs, noise_vars, connections)
+    data_int <- sample_from_sem(p, n_int, noise_vars_int, connections_int)
+    data <- rbind(data_obs, data_int)
+    colnames(data) <- 1:p
+    
+    Y <- data[, target]
+    X <- data[, -target]
+    
+  } else {
+    Y <- list()
+    X <- list()
+    for (i in 1:repeats) {
+      data_obs <- sample_from_sem(p, n_obs, noise_vars, connections)
+      data_int <- sample_from_sem(p, n_int, noise_vars_int, connections_int)
+      data <- rbind(data_obs, data_int)
+      colnames(data) <- 1:p
+      
+      Y[[i]] <- data[, target]
+      X[[i]] <- data[, -target]
+    }
+  }
   ExpInd <- c(rep(1, n_obs), rep(2, n_int))
   
   return(list('X' = X, 'Y' = Y, 'E' = ExpInd, 'target' = target, 
