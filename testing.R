@@ -1,19 +1,30 @@
-library(InvariantCausalPrediction)
+library(pcalg)
 source('data_generation.R')
 
+# data(gmG)
+# score <- new("GaussL0penObsScore", gmG8$x)
+# ges.fit <- ges(score)
+# if (require(Rgraphviz)) {
+#   par(mfrow=c(1,2))
+#   plot(ges.fit$essgraph, main = "Estimated CPDAG")
+#   plot(gmG8$g, main = "True DAG")
+# } 
 
-data <- sample_data(repeats = 1)
-X = data$X
-Y = data$Y
-E = data$E
-target_parents <- data$target_parents
+data(gmInt)
+score <- new("GaussL0penIntScore", gmInt$x, gmInt$targets, gmInt$target.index)
+# gies.fit <- gies(score)
+# par(mfrow=c(1,2))
+# plot(gies.fit$essgraph, main = "Estimated ess. graph")
+# plot(gmInt$g, main = "True DAG")
 
-success <- 0
-fwer <- 0
+output <- sample_data()
+interventional_nodes <- output$interventional_nodes
+data <- output$data
+E <- output$E
+target <- 5
 
-icp <- ICP(X, Y, E, alpha=0.01,
-           showAcceptedSets = FALSE, showCompletion = FALSE, stopIfEmpty = TRUE)
-print(icp)
-invariant_predictors = to_vec(for (k in 1:ncol(X)) if (icp$maximinCoefficients[k] != 0) icp$colnames[k])
-fwer <- any((for (predictor in invariant_predictors) !is.element(predictor, target_parents)))
-success <- setequal(invariant_predictors, target_parents)
+interventions <- list(integer(0), interventional_nodes)
+score <- new("GaussL0penIntScore", data, interventions, E)
+# gies.fit <- gies(score, targets = list(integer(0), intervention_nodes))
+# ges.edges <- ges.fit$repr$.in.edges
+# return (ges.edges[[target]])

@@ -48,9 +48,6 @@ sample_data <- function(repeats=1) {
     inv_frac = rdunif(1, 11, 30) / 10
   }
   
-  target = rdunif(1, p)
-  predictors <- to_vec(for (i in 1:p) if (i != target) i)
-  
   # observational sem
   noise_vars <- runif(p, var_min, var_max)
   connections = matrix(0, nrow=p, ncol=p)
@@ -64,7 +61,8 @@ sample_data <- function(repeats=1) {
   }
   
   # interventional sem
-  int_nodes <- sort(sample(predictors, p/inv_frac))
+  int_nodes <- sort(sample(1:p, p/inv_frac))
+  stationary_nodes <- to_vec(for (i in 1:p) if (!is.element(i, int_nodes)) i)
   noise_vars_int = noise_vars
   connections_int = connections
   
@@ -83,38 +81,22 @@ sample_data <- function(repeats=1) {
     }
   }
   
-  target_parents <- to_vec(for (i in 1:p) if (connections[i, target] != 0) i)
-  target_parent_weights <- 
-    to_vec(for (i in 1:p) if (connections[i, target] != 0) connections[i, target])
-  
   # sampling data
-  if (repeats == 1) {
+  data <- list()
+  for (i in 1:repeats) {
     data_obs <- sample_from_sem(p, n_obs, noise_vars, connections)
     data_int <- sample_from_sem(p, n_int, noise_vars_int, connections_int)
-    data <- rbind(data_obs, data_int)
-    colnames(data) <- 1:p
-    
-    Y <- data[, target]
-    X <- data[, -target]
-    
-  } else {
-    Y <- list()
-    X <- list()
-    for (i in 1:repeats) {
-      data_obs <- sample_from_sem(p, n_obs, noise_vars, connections)
-      data_int <- sample_from_sem(p, n_int, noise_vars_int, connections_int)
-      data <- rbind(data_obs, data_int)
-      colnames(data) <- 1:p
-      
-      Y[[i]] <- data[, target]
-      X[[i]] <- data[, -target]
-    }
+    data[[i]] <- rbind(data_obs, data_int)
+    colnames(data[[i]]) <- 1:p
   }
-  ExpInd <- c(rep(1, n_obs), rep(2, n_int))
   
-  return(list('X' = X, 'Y' = Y, 'E' = ExpInd, 'target' = target, 
-              'target_parents' = target_parents, 'target_parent_weights' = target_parent_weights,
+  if (repeats == 1) {
+    data <- data[[i]]
+  }
+  
+  ExpInd <- c(rep(1, n_obs), rep(2, n_int))
+  return(list('data' = data, 'E' = ExpInd, 'p' = p, 
+              'stationary_nodes' = stationary_nodes, 'interventional_nodes' = int_nodes,
               'obs_conn' = connections,  'int_conn' = connections_int,
-              'obs_noise_vars' = noise_vars, 'int_noise_vars' = noise_vars_int,
-              'int_nodes' = int_nodes))
+              'obs_noise_vars' = noise_vars, 'int_noise_vars' = noise_vars_int))
 }
