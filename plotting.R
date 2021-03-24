@@ -14,10 +14,6 @@ plot_list <- function(list, y_label, x_label, fwer=FALSE) {
     X <- append(X, rep(i, 5))
     Y <- append(Y, quantile(list[[i]]))
     colors <- append(colors, c('black', 'black', 'red', 'black', 'black'))
-    # for (j in 1:length(list[[i]])) {
-    #   X <- append(X, i)
-    #   Y <- append(Y, list[[i]][j])
-    # }
   }
   plot(X, Y, col=colors, pch = 19, ylim = c(0, 1), xaxt = 'n', 
        ylab = y_label, xlab = x_label)
@@ -51,16 +47,16 @@ plot_cluster_comparison <- function(data_list, label) {
 
 
   # splitting methods
-# load('results/split/2021-03-23-18-26-46.RData')
-# fwer_list <- fwer_list[c('baseline', 'clustering', 'smart_clustering', 'oracle')]
-# success_list <- success_list[c('baseline', 'clustering', 'smart_clustering', 'oracle')]
-# plot_list(success_list, 'Success Probability', '')
-# plot_list(fwer_list, 'FWER', '', fwer = TRUE)
+load('results/split/2021-03-23-18-26-46.RData')
+fwer_list <- fwer_list[c('baseline', 'clustering', 'smart_clustering', 'oracle')]
+success_list <- success_list[c('baseline', 'clustering', 'smart_clustering', 'oracle')]
+plot_list(success_list, 'Success Probability', '')
+plot_list(fwer_list, 'FWER', '', fwer = TRUE)
 
   # num clusters
-# load('results/num_clusters/2021-03-24-00-12-00.RData')
-# plot_cluster_comparison(success_list, 'Success Probability')
-# plot_cluster_comparison(fwer_list, 'FWER')
+load('results/num_clusters/2021-03-24-00-12-00.RData')
+plot_cluster_comparison(success_list, 'Success Probability')
+plot_cluster_comparison(fwer_list, 'FWER')
 
   # sota
 load('results/sota/2021-03-24-16-05-25.RData')

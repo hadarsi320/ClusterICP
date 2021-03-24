@@ -6,11 +6,6 @@ sample_from_sem <- function(p, n, noise_vars, connections) {
   for (i in 2:p) {
     X[, i] = X[, i] * noise_vars[i]^0.5 + X %*% connections[, i]
   }
-  # for (i in 1:(p-1)) {
-  #   for (j in (i+1):p) {
-  #       X[, j] = X[, j] + X[, i] * connections[i, j]
-  #     }
-  #   }
   return(X)
 }
 
